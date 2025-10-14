@@ -2,166 +2,337 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Namaz Vakitleri</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+    
     body {
-      font-family: "Segoe UI", sans-serif;
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
       background: #f8f9fa;
       color: #222;
       text-align: center;
       margin: 0;
       padding: 0;
+      min-height: 100vh;
     }
+    
+    .container {
+      max-width: 100%;
+      padding: 10px;
+    }
+    
     h1 {
-      margin-top: 20px;
+      margin: 15px 0 10px 0;
       color: #00695c;
+      font-size: 1.5rem;
+      padding: 0 10px;
     }
+    
     .controls {
-      margin: 20px auto;
+      margin: 15px auto;
       display: flex;
-      justify-content: center;
-      gap: 15px;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 10px;
       align-items: center;
+      padding: 0 10px;
     }
+    
+    .select-group {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+    }
+    
     select, button {
-      padding: 10px 15px;
+      padding: 12px 15px;
       border: 1px solid #009688;
-      border-radius: 5px;
-      font-size: 14px;
+      border-radius: 8px;
+      font-size: 16px; /* iOS için minimum font size */
       background: white;
       cursor: pointer;
+      width: 100%;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
     }
+    
+    select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23009688' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+    }
+    
     button {
       background: #009688;
       color: white;
       border: none;
-      transition: background 0.3s;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      flex: 1;
     }
+    
+    button:active {
+      transform: scale(0.98);
+      background: #00796b;
+    }
+    
     button:hover {
       background: #00796b;
     }
+    
     button:disabled {
       background: #cccccc;
       cursor: not-allowed;
+      transform: none;
     }
-    .current-prayer {
-      margin: 20px auto;
-      padding: 15px;
-      background: linear-gradient(135deg, #009688, #00695c);
-      color: white;
-      border-radius: 10px;
-      max-width: 400px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    
+    #bildirimBtn {
+      background: #d32f2f;
     }
-    .current-prayer h2 {
-      margin: 0 0 10px 0;
-      font-size: 18px;
+    
+    #bildirimBtn:active {
+      background: #c62828;
     }
-    .current-prayer .prayer-name {
-      font-size: 24px;
-      font-weight: bold;
-      margin: 5px 0;
-    }
-    .current-prayer .time-left {
-      font-size: 16px;
-      margin-top: 10px;
-      opacity: 0.9;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-      background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    th, td {
-      padding: 12px 25px;
-      border-bottom: 1px solid #ddd;
-    }
-    th {
-      background: #009688;
-      color: white;
-    }
-    tr.current {
-      background: #e0f2f1 !important;
-      font-weight: bold;
-    }
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-    tr:last-child td {
-      border-bottom: none;
-    }
-    footer {
-      margin-top: 20px;
-      padding: 15px;
-      background: #009688;
-      color: white;
-      font-style: italic;
-    }
+    
     .notification-status {
-      margin-top: 10px;
+      margin: 8px 0;
       font-size: 14px;
       color: #666;
+      padding: 0 10px;
     }
+    
     .location-info {
       margin: 10px auto;
       font-size: 14px;
       color: #555;
+      padding: 0 15px;
+      line-height: 1.4;
+    }
+    
+    .current-prayer {
+      margin: 15px auto;
+      padding: 20px 15px;
+      background: linear-gradient(135deg, #009688, #00695c);
+      color: white;
+      border-radius: 12px;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .current-prayer h2 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .current-prayer .prayer-name {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    
+    .current-prayer .time-left {
+      font-size: 15px;
+      margin-top: 12px;
+      opacity: 0.95;
+      line-height: 1.4;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      margin: 15px 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 300px;
+    }
+    
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: center;
+    }
+    
+    th {
+      background: #009688;
+      color: white;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+    
+    tr.current {
+      background: #e0f2f1 !important;
+      font-weight: bold;
+      color: #00695c;
+    }
+    
+    tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    footer {
+      margin: 20px 0 0 0;
+      padding: 20px 15px;
+      background: #009688;
+      color: white;
+      font-style: italic;
+      line-height: 1.5;
+    }
+    
+    /* Mobil için özel stiller */
+    @media (min-width: 768px) {
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      
+      .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .select-group {
+        max-width: 300px;
+      }
+      
+      .button-group {
+        max-width: 300px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+        margin: 20px 0 15px 0;
+      }
+      
+      .current-prayer {
+        padding: 25px 20px;
+      }
+      
+      .current-prayer h2 {
+        font-size: 18px;
+      }
+      
+      .current-prayer .prayer-name {
+        font-size: 26px;
+      }
+    }
+    
+    @media (max-width: 380px) {
+      .select-group, .button-group {
+        flex-direction: column;
+      }
+      
+      select, button {
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+      
+      th, td {
+        padding: 12px 10px;
+        font-size: 14px;
+      }
+    }
+    
+    /* Yükleniyor animasyonu */
+    .loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    
+    /* Touch için iyileştirmeler */
+    @media (hover: none) and (pointer: coarse) {
+      button:active {
+        background: #00796b;
+        transform: scale(0.95);
+      }
+      
+      select:active {
+        background-color: #f0f0f0;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>🕌 Namaz Vakitleri</h1>
-  
-  <div class="controls">
-    <select id="ulkeSelect">
-      <option value="Turkey">Türkiye</option>
-      <option value="Germany">Almanya</option>
-      <option value="France">Fransa</option>
-      <option value="USA">Amerika</option>
-      <option value="Saudi Arabia">Suudi Arabistan</option>
-    </select>
+  <div class="container">
+    <h1>🕌 Namaz Vakitleri</h1>
     
-    <select id="sehirSelect">
-      <option value="Iğdır">Iğdır</option>
-      <option value="İstanbul">İstanbul</option>
-      <option value="Ankara">Ankara</option>
-      <option value="İzmir">İzmir</option>
-      <option value="Bursa">Bursa</option>
-      <option value="Adana">Adana</option>
-      <option value="Konya">Konya</option>
-      <option value="Antalya">Antalya</option>
-      <option value="Erzurum">Erzurum</option>
-      <option value="Trabzon">Trabzon</option>
-    </select>
+    <div class="controls">
+      <div class="select-group">
+        <select id="ulkeSelect">
+          <option value="Turkey">Türkiye</option>
+          <option value="Germany">Almanya</option>
+          <option value="France">Fransa</option>
+          <option value="USA">Amerika</option>
+          <option value="Saudi Arabia">Suudi Arabistan</option>
+        </select>
+        
+        <select id="sehirSelect">
+          <option value="Iğdır">Iğdır</option>
+          <option value="İstanbul">İstanbul</option>
+          <option value="Ankara">Ankara</option>
+          <option value="İzmir">İzmir</option>
+          <option value="Bursa">Bursa</option>
+          <option value="Adana">Adana</option>
+          <option value="Konya">Konya</option>
+          <option value="Antalya">Antalya</option>
+          <option value="Erzurum">Erzurum</option>
+          <option value="Trabzon">Trabzon</option>
+        </select>
+      </div>
+      
+      <div class="button-group">
+        <button id="vakitGetirBtn">Vakitleri Getir</button>
+        <button id="konumBtn">Konumumu Kullan</button>
+        <button id="bildirimBtn">Bildirimleri Aç</button>
+      </div>
+    </div>
     
-    <button id="vakitGetirBtn">Vakitleri Getir</button>
-    <button id="konumBtn">Konumumu Kullan</button>
-    <button id="bildirimBtn">Bildirimleri Aç</button>
+    <div class="notification-status" id="bildirimDurum">
+      Bildirimler: Kapalı
+    </div>
+    
+    <div class="location-info" id="konumBilgi">
+      Şehir: Iğdır, Ülke: Türkiye
+    </div>
+    
+    <div class="current-prayer" id="suankiVakit" style="display: none;">
+      <h2>🕋 Şu Anki Vakit</h2>
+      <div class="prayer-name" id="vakitAdi">-</div>
+      <div class="time-left" id="kalanSure">-</div>
+    </div>
+    
+    <div class="table-container">
+      <table id="vakitler">
+        <tr><th>Vakit</th><th>Saat</th></tr>
+      </table>
+    </div>
+    
+    <footer id="ayet"></footer>
   </div>
-  
-  <div class="notification-status" id="bildirimDurum">
-    Bildirimler: Kapalı
-  </div>
-  
-  <div class="location-info" id="konumBilgi">
-    Şehir: Iğdır, Ülke: Türkiye
-  </div>
-  
-  <div class="current-prayer" id="suankiVakit" style="display: none;">
-    <h2>🕋 Şu Anki Vakit</h2>
-    <div class="prayer-name" id="vakitAdi">-</div>
-    <div class="time-left" id="kalanSure">-</div>
-  </div>
-  
-  <table id="vakitler">
-    <tr><th>Vakit</th><th>Saat</th></tr>
-  </table>
-  
-  <footer id="ayet"></footer>
 
   <script>
     // Değişkenler
@@ -206,6 +377,7 @@
     const suankiVakitDiv = document.getElementById('suankiVakit');
     const vakitAdi = document.getElementById('vakitAdi');
     const kalanSure = document.getElementById('kalanSure');
+    const container = document.querySelector('.container');
 
     // Event listener'lar
     bildirimBtn.addEventListener('click', toggleBildirim);
@@ -214,6 +386,15 @@
 
     // Sayfa yüklendiğinde Iğdır vakitlerini getir
     window.addEventListener('load', () => vakitleriGetir('Turkey', 'Iğdır'));
+
+    // Yükleniyor durumu
+    function setLoading(isLoading) {
+      if (isLoading) {
+        container.classList.add('loading');
+      } else {
+        container.classList.remove('loading');
+      }
+    }
 
     // Konumdan vakit getirme
     function konumdanVakitGetir() {
@@ -224,6 +405,7 @@
 
       konumBtn.disabled = true;
       konumBtn.textContent = "Konum Alınıyor...";
+      setLoading(true);
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -258,19 +440,26 @@
             // Vakitleri getir
             await vakitleriGetir(ulkeKodu, sehir);
             
-            konumBilgi.textContent = `Konum: ${sehir}, ${ulke} (Enlem: ${latitude.toFixed(4)}, Boylam: ${longitude.toFixed(4)})`;
+            konumBilgi.textContent = `Konum: ${sehir}, ${ulke}`;
             
           } catch (error) {
             alert("Konum bilgisi alınamadı: " + error.message);
           } finally {
             konumBtn.disabled = false;
             konumBtn.textContent = "Konumumu Kullan";
+            setLoading(false);
           }
         },
         (error) => {
           alert("Konum erişim izni verilmedi: " + error.message);
           konumBtn.disabled = false;
           konumBtn.textContent = "Konumumu Kullan";
+          setLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
         }
       );
     }
@@ -309,6 +498,7 @@
       try {
         vakitGetirBtn.disabled = true;
         vakitGetirBtn.textContent = "Yükleniyor...";
+        setLoading(true);
 
         const response = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(sehir)}&country=${encodeURIComponent(ulke)}&method=13`);
         const data = await response.json();
@@ -327,6 +517,7 @@
       } finally {
         vakitGetirBtn.disabled = false;
         vakitGetirBtn.textContent = "Vakitleri Getir";
+        setLoading(false);
       }
     }
 
@@ -412,14 +603,18 @@
           const kalanSaat = Math.floor(kalanDakika / 60);
           const kalanDakikaMod = kalanDakika % 60;
           
-          kalanSure.textContent = `Sonraki vakit (${sonrakiVakit}): ${kalanSaat}sa ${kalanDakikaMod}dakika`;
+          if (kalanSaat > 0) {
+            kalanSure.textContent = `Sonraki vakit (${sonrakiVakit}): ${kalanSaat}sa ${kalanDakikaMod}dakika`;
+          } else {
+            kalanSure.textContent = `Sonraki vakit (${sonrakiVakit}): ${kalanDakikaMod}dakika`;
+          }
         } else {
           suankiVakitDiv.style.display = 'none';
         }
       }
 
       hesaplaVeGoster();
-      suankiVakitTimer = setInterval(hesaplaVeGoster, 60000); // Her dakika güncelle
+      suankiVakitTimer = setInterval(hesaplaVeGoster, 60000);
     }
 
     // Zamanlayıcıları ayarla
@@ -467,6 +662,9 @@
 
       zamanlayicilar.push(timer);
     }
+
+    // Mobil için touch event iyileştirmeleri
+    document.addEventListener('touchstart', function() {}, {passive: true});
   </script>
 </body>
 </html>
