@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Namaz Vakitleri</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f8f9fa;
+      color: #222;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
+      color: #00695c;
+    }
+    .controls {
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    select, button {
+      padding: 10px 15px;
+      border: 1px solid #009688;
+      border-radius: 5px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+    button {
+      background: #009688;
+      color: white;
+      border: none;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #00796b;
+    }
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+    .current-prayer {
+      margin: 20px auto;
+      padding: 15px;
+      background: linear-gradient(135deg, #009688, #00695c);
+      color: white;
+      border-radius: 10px;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .current-prayer h2 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+    .current-prayer .prayer-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .current-prayer .time-left {
+      font-size: 16px;
+      margin-top: 10px;
+      opacity: 0.9;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 25px;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #009688;
+      color: white;
+    }
+    tr.current {
+      background: #e0f2f1 !important;
+      font-weight: bold;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    footer {
+      margin-top: 20px;
+      padding: 15px;
+      background: #009688;
+      color: white;
+      font-style: italic;
+    }
+    .notification-status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+    .location-info {
+      margin: 10px auto;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>🕌 Namaz Vakitleri</h1>
+  
+  <div class="controls">
+    <select id="ulkeSelect">
+      <option value="Turkey">Türkiye</option>
+      <option value="Germany">Almanya</option>
+      <option value="France">Fransa</option>
+      <option value="USA">Amerika</option>
+      <option value="Saudi Arabia">Suudi Arabistan</option>
+    </select>
+    
+    <select id="sehirSelect">
+      <option value="Iğdır">Iğdır</option>
+      <option value="İstanbul">İstanbul</option>
+      <option value="Ankara">Ankara</option>
+      <option value="İzmir">İzmir</option>
+      <option value="Bursa">Bursa</option>
+      <option value="Adana">Adana</option>
+      <option value="Konya">Konya</option>
+      <option value="Antalya">Antalya</option>
+      <option value="Erzurum">Erzurum</option>
+      <option value="Trabzon">Trabzon</option>
+    </select>
+    
+    <button id="vakitGetirBtn">Vakitleri Getir</button>
+    <button id="konumBtn">Konumumu Kullan</button>
+    <button id="bildirimBtn">Bildirimleri Aç</button>
+  </div>
+  
+  <div class="notification-status" id="bildirimDurum">
+    Bildirimler: Kapalı
+  </div>
+  
+  <div class="location-info" id="konumBilgi">
+    Şehir: Iğdır, Ülke: Türkiye
+  </div>
+  
+  <div class="current-prayer" id="suankiVakit" style="display: none;">
+    <h2>🕋 Şu Anki Vakit</h2>
+    <div class="prayer-name" id="vakitAdi">-</div>
+    <div class="time-left" id="kalanSure">-</div>
+  </div>
+  
+  <table id="vakitler">
+    <tr><th>Vakit</th><th>Saat</th></tr>
+  </table>
+  
+  <footer id="ayet"></footer>
+
+  <script>
+    // Değişkenler
+    let bildirimAktif = false;
+    let zamanlayicilar = [];
+    let suankiVakitTimer = null;
+    let namazVakitleri = {};
+
+    // Türkçe isim eşleştirmesi
+    const ceviri = {
+      "Fajr": "İmsak",
+      "Sunrise": "Güneş",
+      "Dhuhr": "Öğle",
+      "Asr": "İkindi",
+      "Maghrib": "Akşam",
+      "Isha": "Yatsı"
+    };
+
+    // Vakit sıralaması
+    const vakitSirasi = ["İmsak", "Güneş", "Öğle", "İkindi", "Akşam", "Yatsı"];
+
+    // Rasgele ayetler
+    const ayetler = [
+      "“Şüphesiz ki namaz, müminlere vakitleri belirlenmiş bir farzdır.” (Nisâ, 103)",
+      "“Ey iman edenler! Sabır ve namazla yardım dileyin. Allah sabredenlerle beraberdir.” (Bakara, 153)",
+      "“Namazı dosdoğru kılın, zekâtı verin ve rükû edenlerle beraber rükû edin.” (Bakara, 43)",
+      "“Rabbini sabah akşam zikret, namazda dosdoğru ol.” (Müzzemmil, 8)",
+      "“Secde et ve Rabbine yaklaş.” (Alak, 19)"
+    ];
+
+    // Footer'da rasgele ayet
+    document.getElementById("ayet").innerText = ayetler[Math.floor(Math.random() * ayetler.length)];
+
+    // Elementleri seç
+    const ulkeSelect = document.getElementById('ulkeSelect');
+    const sehirSelect = document.getElementById('sehirSelect');
+    const vakitGetirBtn = document.getElementById('vakitGetirBtn');
+    const konumBtn = document.getElementById('konumBtn');
+    const bildirimBtn = document.getElementById('bildirimBtn');
+    const bildirimDurum = document.getElementById('bildirimDurum');
+    const konumBilgi = document.getElementById('konumBilgi');
+    const suankiVakitDiv = document.getElementById('suankiVakit');
+    const vakitAdi = document.getElementById('vakitAdi');
+    const kalanSure = document.getElementById('kalanSure');
+
+    // Event listener'lar
+    bildirimBtn.addEventListener('click', toggleBildirim);
+    vakitGetirBtn.addEventListener('click', () => vakitleriGetir(ulkeSelect.value, sehirSelect.value));
+    konumBtn.addEventListener('click', konumdanVakitGetir);
+
+    // Sayfa yüklendiğinde Iğdır vakitlerini getir
+    window.addEventListener('load', () => vakitleriGetir('Turkey', 'Iğdır'));
+
+    // Konumdan vakit getirme
+    function konumdanVakitGetir() {
+      if (!navigator.geolocation) {
+        alert("Tarayıcınız konum özelliğini desteklemiyor.");
+        return;
+      }
+
+      konumBtn.disabled = true;
+      konumBtn.textContent = "Konum Alınıyor...";
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // Konumu şehir ismine çevir
+            const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=tr`);
+            const locationData = await response.json();
+            
+            const sehir = locationData.city || locationData.locality || "Bilinmeyen";
+            const ulke = locationData.countryName || "Bilinmeyen";
+            
+            // API için ülke kodu eşleştirme
+            const ulkeKodlari = {
+              "Türkiye": "Turkey",
+              "Germany": "Germany",
+              "Almanya": "Germany",
+              "France": "France",
+              "Fransa": "France",
+              "United States": "USA",
+              "Amerika Birleşik Devletleri": "USA",
+              "Saudi Arabia": "Saudi Arabia",
+              "Suudi Arabistan": "Saudi Arabia"
+            };
+            
+            const ulkeKodu = ulkeKodlari[ulke] || ulke;
+            
+            // Select'leri güncelle
+            ulkeSelect.value = ulkeKodu;
+            sehirSelect.value = sehir;
+            
+            // Vakitleri getir
+            await vakitleriGetir(ulkeKodu, sehir);
+            
+            konumBilgi.textContent = `Konum: ${sehir}, ${ulke} (Enlem: ${latitude.toFixed(4)}, Boylam: ${longitude.toFixed(4)})`;
+            
+          } catch (error) {
+            alert("Konum bilgisi alınamadı: " + error.message);
+          } finally {
+            konumBtn.disabled = false;
+            konumBtn.textContent = "Konumumu Kullan";
+          }
+        },
+        (error) => {
+          alert("Konum erişim izni verilmedi: " + error.message);
+          konumBtn.disabled = false;
+          konumBtn.textContent = "Konumumu Kullan";
+        }
+      );
+    }
+
+    // Bildirim aç/kapat
+    function toggleBildirim() {
+      if (!bildirimAktif) {
+        if ("Notification" in window) {
+          Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              bildirimAktif = true;
+              bildirimBtn.textContent = "Bildirimleri Kapat";
+              bildirimBtn.style.background = "#d32f2f";
+              bildirimDurum.textContent = "Bildirimler: Açık";
+              bildirimDurum.style.color = "#388e3c";
+              zamanlayicilariAyarla();
+            } else {
+              alert("Bildirim izni verilmedi.");
+            }
+          });
+        } else {
+          alert("Bu tarayıcı bildirimleri desteklemiyor.");
+        }
+      } else {
+        bildirimAktif = false;
+        bildirimBtn.textContent = "Bildirimleri Aç";
+        bildirimBtn.style.background = "#009688";
+        bildirimDurum.textContent = "Bildirimler: Kapalı";
+        bildirimDurum.style.color = "#666";
+        zamanlayicilariTemizle();
+      }
+    }
+
+    // Vakitleri getir
+    async function vakitleriGetir(ulke, sehir) {
+      try {
+        vakitGetirBtn.disabled = true;
+        vakitGetirBtn.textContent = "Yükleniyor...";
+
+        const response = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(sehir)}&country=${encodeURIComponent(ulke)}&method=13`);
+        const data = await response.json();
+        
+        if (data.code === 200) {
+          namazVakitleri = data.data.timings;
+          tabloyuGuncelle();
+          konumBilgi.textContent = `Şehir: ${sehir}, Ülke: ${ulkeSelect.options[ulkeSelect.selectedIndex].text}`;
+          suankiVaktiGuncelle();
+          zamanlayicilariAyarla();
+        } else {
+          throw new Error("API hatası");
+        }
+      } catch (error) {
+        alert("Vakitler alınamadı: " + error.message);
+      } finally {
+        vakitGetirBtn.disabled = false;
+        vakitGetirBtn.textContent = "Vakitleri Getir";
+      }
+    }
+
+    // Tabloyu güncelle
+    function tabloyuGuncelle() {
+      const table = document.getElementById("vakitler");
+      // Mevcut satırları temizle (başlık hariç)
+      while (table.rows.length > 1) {
+        table.deleteRow(1);
+      }
+
+      for (const [key, value] of Object.entries(namazVakitleri)) {
+        if (ceviri[key]) {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td>${ceviri[key]}</td><td>${value}</td>`;
+          row.id = `row-${ceviri[key]}`;
+          table.appendChild(row);
+        }
+      }
+    }
+
+    // Şu anki vakti güncelle
+    function suankiVaktiGuncelle() {
+      if (suankiVakitTimer) {
+        clearInterval(suankiVakitTimer);
+      }
+
+      function hesaplaVeGoster() {
+        const simdi = new Date();
+        const suankiSaat = simdi.getHours().toString().padStart(2, '0') + ':' + 
+                          simdi.getMinutes().toString().padStart(2, '0');
+
+        let suankiVakit = null;
+        let sonrakiVakit = null;
+        let sonrakiVakitSaat = null;
+
+        // Vakitleri kontrol et
+        for (let i = 0; i < vakitSirasi.length; i++) {
+          const vakit = vakitSirasi[i];
+          const vakitSaat = Object.entries(namazVakitleri).find(([key, val]) => ceviri[key] === vakit)?.[1];
+          
+          if (vakitSaat) {
+            if (suankiSaat < vakitSaat) {
+              sonrakiVakit = vakit;
+              sonrakiVakitSaat = vakitSaat;
+              break;
+            } else {
+              suankiVakit = vakit;
+            }
+          }
+        }
+
+        // Gece yatsıdan imsaka kadar
+        if (!sonrakiVakit) {
+          sonrakiVakit = "İmsak";
+          sonrakiVakitSaat = namazVakitleri.Fajr;
+        }
+
+        // Tabloyu güncelle
+        document.querySelectorAll('#vakitler tr').forEach(tr => {
+          tr.classList.remove('current');
+        });
+        if (suankiVakit) {
+          document.getElementById(`row-${suankiVakit}`)?.classList.add('current');
+        }
+
+        // Şu anki vakit bilgisini göster
+        if (suankiVakit) {
+          suankiVakitDiv.style.display = 'block';
+          vakitAdi.textContent = `${suankiVakit} Vakti`;
+          
+          // Kalan süreyi hesapla
+          const [sonrakiSaat, sonrakiDakika] = sonrakiVakitSaat.split(':').map(Number);
+          const sonrakiZaman = new Date();
+          sonrakiZaman.setHours(sonrakiSaat, sonrakiDakika, 0, 0);
+          
+          if (sonrakiZaman < simdi) {
+            sonrakiZaman.setDate(sonrakiZaman.getDate() + 1);
+          }
+          
+          const kalanMs = sonrakiZaman - simdi;
+          const kalanDakika = Math.floor(kalanMs / (1000 * 60));
+          const kalanSaat = Math.floor(kalanDakika / 60);
+          const kalanDakikaMod = kalanDakika % 60;
+          
+          kalanSure.textContent = `Sonraki vakit (${sonrakiVakit}): ${kalanSaat}sa ${kalanDakikaMod}dakika`;
+        } else {
+          suankiVakitDiv.style.display = 'none';
+        }
+      }
+
+      hesaplaVeGoster();
+      suankiVakitTimer = setInterval(hesaplaVeGoster, 60000); // Her dakika güncelle
+    }
+
+    // Zamanlayıcıları ayarla
+    function zamanlayicilariAyarla() {
+      if (!bildirimAktif) return;
+      
+      zamanlayicilariTemizle();
+
+      for (const [key, value] of Object.entries(namazVakitleri)) {
+        if (ceviri[key]) {
+          scheduleNotification(ceviri[key], value);
+        }
+      }
+    }
+
+    // Zamanlayıcıları temizle
+    function zamanlayicilariTemizle() {
+      zamanlayicilar.forEach(timer => clearTimeout(timer));
+      zamanlayicilar = [];
+    }
+
+    // Bildirim planlama
+    function scheduleNotification(vakitAdi, saat) {
+      const [h, m] = saat.split(":").map(Number);
+      const now = new Date();
+      const target = new Date();
+      target.setHours(h, m, 0, 0);
+
+      if (target < now) {
+        target.setDate(target.getDate() + 1);
+      }
+
+      const ms = target - now;
+      const timer = setTimeout(() => {
+        if (Notification.permission === "granted") {
+          new Notification("Namaz Vakti", {
+            body: `${vakitAdi} vakti girdi.`,
+            icon: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Mosque_icon.png"
+          });
+        }
+        
+        // Tekrar zamanla (ertesi gün için)
+        scheduleNotification(vakitAdi, saat);
+      }, ms);
+
+      zamanlayicilar.push(timer);
+    }
+  </script>
+</body>
+</html>
