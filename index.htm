@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕌</text></svg>">
   <title>Namaz Vakitleri</title>
   <style>
     * {
@@ -267,6 +268,10 @@
       opacity: 0.7;
       pointer-events: none;
     }
+    .emoji {
+  font-size: 1.2em;
+  vertical-align: middle;
+}
   </style>
 </head>
 <body>
@@ -368,11 +373,11 @@
         </select>
       </div>
       
-      <div class="button-group">
-        <button id="vakitGetirBtn">Vakitleri Getir</button>
-        <button id="konumBtn">Konumumu Kullan</button>
-        <button id="bildirimBtn">Bildirimleri Aç</button>
-      </div>
+     <div class="button-group">
+  <button id="vakitGetirBtn">📅 Vakitleri Getir</button>
+  <button id="konumBtn">📍 Konumumu Kullan</button>
+  <button id="bildirimBtn">🔔 Bildirimleri Aç</button>
+</div>
     </div>
     
     <div class="notification-status" id="bildirimDurum">
@@ -730,7 +735,7 @@
                 bildirimAktif = true;
                 bildirimBtn.textContent = "Bildirimleri Kapat";
                 bildirimBtn.classList.add('bildirim-acik');
-                bildirimDurum.textContent = "Bildirimler: Açık";
+                bildirimDurum.textContent = "🔔 Bildirimler: Açık";
                 bildirimDurum.classList.add('acik');
                 zamanlayicilariAyarla();
                 
@@ -760,7 +765,7 @@
         bildirimAktif = false;
         bildirimBtn.textContent = "Bildirimleri Aç";
         bildirimBtn.classList.remove('bildirim-acik');
-        bildirimDurum.textContent = "Bildirimler: Kapalı";
+        bildirimDurum.textContent = "🔕 Bildirimler: Kapalı";
         bildirimDurum.classList.remove('acik');
         zamanlayicilariTemizle();
       }
@@ -942,4 +947,5 @@
   </script>
 </body>
 </html>
+
 
