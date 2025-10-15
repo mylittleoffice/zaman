@@ -376,7 +376,7 @@
      <div class="button-group">
   <button id="vakitGetirBtn">📅 Vakitleri Getir</button>
   <button id="konumBtn">📍 Konumumu Kullan</button>
-  <button id="bildirimBtn">🔔 Bildirimleri Aç</button>
+  <button id="bildirimBtn">🔔 </button>
 </div>
     </div>
     
@@ -615,9 +615,9 @@
           bildirimDurum.classList.add('acik');
         } else {
           bildirimAktif = false;
-          bildirimBtn.textContent = "Bildirimleri Aç";
+          bildirimBtn.textContent = "🔔 Bildirimleri Aç";
           bildirimBtn.classList.remove('bildirim-acik');
-          bildirimDurum.textContent = "Bildirimler: Kapalı";
+          bildirimDurum.textContent = "🔕 Bildirimler: Kapalı";
           bildirimDurum.classList.remove('acik');
         }
       }
@@ -763,7 +763,7 @@
       } else {
         // Bildirim kapatma
         bildirimAktif = false;
-        bildirimBtn.textContent = "Bildirimleri Aç";
+        bildirimBtn.textContent = "🔔 Bildirimleri Aç";
         bildirimBtn.classList.remove('bildirim-acik');
         bildirimDurum.textContent = "🔕 Bildirimler: Kapalı";
         bildirimDurum.classList.remove('acik');
@@ -947,6 +947,7 @@
   </script>
 </body>
 </html>
+
 
 
 
