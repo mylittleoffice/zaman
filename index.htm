@@ -208,6 +208,16 @@
       line-height: 1.5;
     }
     
+    .auto-location-info {
+      background: #e3f2fd;
+      padding: 8px 15px;
+      border-radius: 8px;
+      margin: 10px auto;
+      max-width: 400px;
+      font-size: 14px;
+      color: #1565c0;
+    }
+    
     /* Mobil için özel stiller */
     @media (min-width: 768px) {
       .container {
@@ -268,15 +278,20 @@
       opacity: 0.7;
       pointer-events: none;
     }
+    
     .emoji {
-  font-size: 1.2em;
-  vertical-align: middle;
-}
+      font-size: 1.2em;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🕌 Namaz Vakitleri</h1>
+    
+    <div class="auto-location-info" id="autoLocationInfo" style="display: none;">
+      📍 Kayıtlı konumunuz otomatik yüklendi. Değiştirmek için yeniden seçin.
+    </div>
     
     <div class="controls">
       <div class="select-group">
@@ -326,7 +341,7 @@
           <option value="Gümüşhane">Gümüşhane</option>
           <option value="Hakkari">Hakkari</option>
           <option value="Hatay">Hatay</option>
-          <option value="Iğdır" selected>Iğdır</option>
+          <option value="Iğdır">Iğdır</option>
           <option value="Isparta">Isparta</option>
           <option value="İstanbul">İstanbul</option>
           <option value="İzmir">İzmir</option>
@@ -373,11 +388,11 @@
         </select>
       </div>
       
-     <div class="button-group">
-  <button id="vakitGetirBtn">📅 Vakitleri Getir</button>
-  <button id="konumBtn">📍 Konumumu Kullan</button>
-  <button id="bildirimBtn">🔔 </button>
-</div>
+      <div class="button-group">
+        <button id="vakitGetirBtn">📅 Vakitleri Getir</button>
+        <button id="konumBtn">📍 Konumumu Kullan</button>
+        <button id="bildirimBtn">🔔 </button>
+      </div>
     </div>
     
     <div class="notification-status" id="bildirimDurum">
@@ -385,7 +400,7 @@
     </div>
     
     <div class="location-info" id="konumBilgi">
-      Şehir: Iğdır, Ülke: Türkiye
+      Vakitleri görmek için şehir seçin veya konumunuzu kullanın
     </div>
     
     <div class="current-prayer" id="suankiVakit" style="display: none;">
@@ -409,6 +424,7 @@
     let zamanlayicilar = [];
     let suankiVakitTimer = null;
     let namazVakitleri = {};
+    let kullaniciKonumKaydet = true; // Konum kaydetme özelliği aktif
 
     // Türkçe isim eşleştirmesi
     const ceviri = {
@@ -423,7 +439,7 @@
     // Vakit sıralaması
     const vakitSirasi = ["İmsak", "Güneş", "Öğle", "İkindi", "Akşam", "Yatsı"];
 
-    // Rasgele ayetler
+      // Rasgele ayetler
     const ayetler = [
   "“Şüphesiz ki namaz, müminlere vakitleri belirlenmiş bir farzdır.” (Nisâ, 103)",
   "“Ey iman edenler! Sabır ve namazla yardım dileyin. Allah sabredenlerle beraberdir.” (Bakara, 153)",
@@ -522,7 +538,6 @@
   "“Rabbinin hükmüne sabret; çünkü O, en iyi hükmedenlerin ta kendisidir.” (Yûnus, 109)"
 ];
 
-
     // Ülkelere göre şehirler
     const sehirler = {
       "Turkey": [
@@ -551,8 +566,12 @@
       ]
     };
 
-    // Footer'da rasgele ayet
-    document.getElementById("ayet").innerText = ayetler[Math.floor(Math.random() * ayetler.length)];
+    // LocalStorage anahtarları
+    const STORAGE_KEYS = {
+      ULKE: 'namazVakitleri_ulke',
+      SEHIR: 'namazVakitleri_sehir',
+      KONUM_KAYITLI: 'namazVakitleri_konumKayitli'
+    };
 
     // Elementleri seç
     const ulkeSelect = document.getElementById('ulkeSelect');
@@ -565,22 +584,90 @@
     const suankiVakitDiv = document.getElementById('suankiVakit');
     const vakitAdi = document.getElementById('vakitAdi');
     const kalanSure = document.getElementById('kalanSure');
+    const autoLocationInfo = document.getElementById('autoLocationInfo');
     const container = document.querySelector('.container');
 
-    // Sayfa yüklendiğinde ilk ayarları yap
+    // Sayfa yüklendiğinde
     window.addEventListener('load', function() {
-      // Iğdır'ı seçili yap
-      sehirSelect.value = "Iğdır";
-      // Vakitleri getir
-      vakitleriGetir('Turkey', 'Iğdır');
+      // Footer'da rasgele ayet
+      document.getElementById("ayet").innerText = ayetler[Math.floor(Math.random() * ayetler.length)];
+      
+      // Kayıtlı konumu kontrol et ve yükle
+      kayitliKonumuYukle();
+      
       // Bildirim iznini kontrol et
       bildirimIzniniKontrolEt();
     });
+
+    // LocalStorage'dan kayıtlı konumu yükle
+    function kayitliKonumuYukle() {
+      const kayitliUlke = localStorage.getItem(STORAGE_KEYS.ULKE);
+      const kayitliSehir = localStorage.getItem(STORAGE_KEYS.SEHIR);
+      const konumKayitli = localStorage.getItem(STORAGE_KEYS.KONUM_KAYITLI) === 'true';
+      
+      if (konumKayitli && kayitliUlke && kayitliSehir) {
+        // UI'ı güncelle
+        ulkeSelect.value = kayitliUlke;
+        sehirleriGuncelle(kayitliUlke);
+        
+        // Şehri seç (listede varsa)
+        setTimeout(() => {
+          if (sehirSelect.querySelector(`option[value="${kayitliSehir}"]`)) {
+            sehirSelect.value = kayitliSehir;
+          } else if (sehirSelect.options.length > 0) {
+            sehirSelect.selectedIndex = 0;
+          }
+          
+          // Vakitleri getir
+          vakitleriGetir(kayitliUlke, sehirSelect.value);
+          
+          // Bilgi mesajını göster
+          autoLocationInfo.style.display = 'block';
+          autoLocationInfo.innerHTML = `📍 Kayıtlı konumunuz <strong>${kayitliSehir}, ${ulkeSelect.options[ulkeSelect.selectedIndex].text}</strong> otomatik yüklendi.`;
+          konumBilgi.textContent = `Şehir: ${sehirSelect.value}, Ülke: ${ulkeSelect.options[ulkeSelect.selectedIndex].text}`;
+        }, 100);
+      } else {
+        // Varsayılan olarak Iğdır'ı yükle
+        ulkeSelect.value = "Turkey";
+        sehirSelect.value = "Iğdır";
+        vakitleriGetir('Turkey', 'Iğdır');
+      }
+    }
+
+    // Konumu LocalStorage'a kaydet
+    function konumuKaydet(ulke, sehir) {
+      if (!kullaniciKonumKaydet) return;
+      
+      localStorage.setItem(STORAGE_KEYS.ULKE, ulke);
+      localStorage.setItem(STORAGE_KEYS.SEHIR, sehir);
+      localStorage.setItem(STORAGE_KEYS.KONUM_KAYITLI, 'true');
+      
+      console.log(`Konum kaydedildi: ${sehir}, ${ulke}`);
+    }
 
     // Ülke değiştiğinde şehirleri güncelle
     ulkeSelect.addEventListener('change', function() {
       const ulke = this.value;
       sehirleriGuncelle(ulke);
+      
+      // Yeni konumu kaydet
+      if (sehirSelect.value) {
+        konumuKaydet(ulke, sehirSelect.value);
+        autoLocationInfo.style.display = 'none';
+      }
+    });
+
+    // Şehir değiştiğinde
+    sehirSelect.addEventListener('change', function() {
+      const ulke = ulkeSelect.value;
+      const sehir = this.value;
+      
+      // Vakitleri getir
+      vakitleriGetir(ulke, sehir);
+      
+      // Yeni konumu kaydet
+      konumuKaydet(ulke, sehir);
+      autoLocationInfo.style.display = 'none';
     });
 
     // Şehirleri güncelle fonksiyonu
@@ -597,11 +684,6 @@
         option.textContent = sehir;
         sehirSelect.appendChild(option);
       });
-      
-      // İlk şehir için vakitleri getir
-      if (sehirListesi.length > 0) {
-        vakitleriGetir(ulke, sehirListesi[0]);
-      }
     }
 
     // Bildirim iznini kontrol et
@@ -609,9 +691,9 @@
       if ("Notification" in window) {
         if (Notification.permission === "granted") {
           bildirimAktif = true;
-          bildirimBtn.textContent = "Bildirimleri Kapat";
+          bildirimBtn.textContent = "🔕 Bildirimleri Kapat";
           bildirimBtn.classList.add('bildirim-acik');
-          bildirimDurum.textContent = "Bildirimler: Açık";
+          bildirimDurum.textContent = "🔔 Bildirimler: Açık";
           bildirimDurum.classList.add('acik');
         } else {
           bildirimAktif = false;
@@ -625,7 +707,10 @@
 
     // Event listener'lar
     bildirimBtn.addEventListener('click', toggleBildirim);
-    vakitGetirBtn.addEventListener('click', () => vakitleriGetir(ulkeSelect.value, sehirSelect.value));
+    vakitGetirBtn.addEventListener('click', () => {
+      vakitleriGetir(ulkeSelect.value, sehirSelect.value);
+      konumuKaydet(ulkeSelect.value, sehirSelect.value);
+    });
     konumBtn.addEventListener('click', konumdanVakitGetir);
 
     // Yükleniyor durumu
@@ -637,8 +722,8 @@
       }
     }
 
-    // Konumdan vakit getirme
-    function konumdanVakitGetir() {
+    // KONUMDAN VAKİT GETİRME - TAM ÇALIŞAN VERSİYON
+    async function konumdanVakitGetir() {
       if (!navigator.geolocation) {
         alert("Tarayıcınız konum özelliğini desteklemiyor.");
         return;
@@ -647,72 +732,127 @@
       konumBtn.disabled = true;
       konumBtn.textContent = "Konum Alınıyor...";
       setLoading(true);
+      
+      // Otomatik konum mesajını gizle
+      autoLocationInfo.style.display = 'none';
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            // Konumu şehir ismine çevir
-            const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=tr`);
-            const locationData = await response.json();
+            console.log("Konum alındı:", latitude, longitude);
             
-            let sehir = locationData.city || locationData.locality || "Bilinmeyen";
-            const ulke = locationData.countryName || "Bilinmeyen";
-            
-            // API için ülke kodu eşleştirme
-            const ulkeKodlari = {
-              "Türkiye": "Turkey",
-              "Germany": "Germany",
-              "Almanya": "Germany",
-              "France": "France",
-              "Fransa": "France",
-              "United States": "USA",
-              "Amerika Birleşik Devletleri": "USA"
-            };
-            
-            const ulkeKodu = ulkeKodlari[ulke] || ulke;
-            
-            // Select'leri güncelle
-            ulkeSelect.value = ulkeKodu;
-            
-            // Şehir select'ini güncelle
-            sehirleriGuncelle(ulkeKodu);
-            
-            // Konumdaki şehri bul ve seç
-            const sehirListesi = sehirler[ulkeKodu] || [];
-            let konumdakiSehir = sehirListesi.find(s => 
-              s.toLowerCase().includes(sehir.toLowerCase()) || 
-              sehir.toLowerCase().includes(s.toLowerCase())
+            // 1. Ters Coğrafi Kodlama ile Şehir/Ülke Adını Al
+            const geoResponse = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=tr`
             );
             
-            if (!konumdakiSehir && sehirListesi.length > 0) {
-              konumdakiSehir = sehirListesi[0];
+            if (!geoResponse.ok) {
+              throw new Error("Konum API hatası: " + geoResponse.status);
             }
             
-            if (konumdakiSehir) {
-              sehirSelect.value = konumdakiSehir;
-              sehir = konumdakiSehir;
+            const locationData = await geoResponse.json();
+            console.log("Konum verisi:", locationData);
+            
+            // 2. Şehir ve ülke bilgilerini al
+            let sehir = locationData.city || locationData.locality || "Bilinmeyen";
+            let ulke = locationData.countryName || "Bilinmeyen";
+            
+            // 3. API için ülke kodu eşleştirmesi
+            let ulkeKodu = ulke;
+            if (ulke.toLowerCase().includes("türkiye") || ulke.toLowerCase().includes("turkey")) {
+              ulkeKodu = "Turkey";
+            } else if (ulke.toLowerCase().includes("almanya") || ulke.toLowerCase().includes("germany")) {
+              ulkeKodu = "Germany";
+            } else if (ulke.toLowerCase().includes("fransa") || ulke.toLowerCase().includes("france")) {
+              ulkeKodu = "France";
+            } else if (ulke.toLowerCase().includes("amerika") || ulke.toLowerCase().includes("united states")) {
+              ulkeKodu = "USA";
             }
             
-            // Vakitleri getir
-            await vakitleriGetir(ulkeKodu, sehir);
+            console.log("İşlenen veri - Şehir:", sehir, "Ülke Kodu:", ulkeKodu);
             
-            konumBilgi.textContent = `Konum: ${sehir}, ${ulke}`;
+            // 4. Şehir eşleştirmesi yap
+            const secilenUlke = ulkeKodu;
+            let secilenSehir = sehir;
+            
+            // Ülke listede var mı?
+            if (sehirler[secilenUlke]) {
+              // Şehir adını listedeki bir isimle eşleştir
+              const eslesenSehir = sehirler[secilenUlke].find(s => 
+                s.toLowerCase() === sehir.toLowerCase() || 
+                sehir.toLowerCase().includes(s.toLowerCase()) ||
+                s.toLowerCase().includes(sehir.toLowerCase())
+              );
+              
+              if (eslesenSehir) {
+                secilenSehir = eslesenSehir;
+                console.log("Şehir eşleştirildi:", eslesenSehir);
+              } else if (sehirler[secilenUlke].length > 0) {
+                // Eşleşme yoksa listedeki ilk şehri kullan
+                secilenSehir = sehirler[secilenUlke][0];
+                console.log("Şehir bulunamadı, varsayılan kullanılıyor:", secilenSehir);
+              }
+            }
+            
+            // 5. UI'ı güncelle
+            ulkeSelect.value = secilenUlke;
+            sehirleriGuncelle(secilenUlke);
+            
+            // Şehir seçimini güncelle
+            setTimeout(() => {
+              if (sehirSelect.querySelector(`option[value="${secilenSehir}"]`)) {
+                sehirSelect.value = secilenSehir;
+              } else if (sehirSelect.options.length > 0) {
+                sehirSelect.selectedIndex = 0;
+                secilenSehir = sehirSelect.value;
+              }
+              
+              // 6. Vakitleri getir
+              vakitleriGetir(secilenUlke, secilenSehir);
+              
+              // 7. Konumu kaydet
+              konumuKaydet(secilenUlke, secilenSehir);
+              
+              // 8. Bilgilendirme mesajı
+              konumBilgi.textContent = `Konumunuz: ${secilenSehir}, ${ulke}`;
+              konumBilgi.style.color = "#388e3c";
+              
+              // Otomatik konum mesajını göster
+              autoLocationInfo.style.display = 'block';
+              autoLocationInfo.innerHTML = `📍 Konumunuz <strong>${secilenSehir}, ${ulke}</strong> olarak ayarlandı ve kaydedildi.`;
+              
+            }, 100);
             
           } catch (error) {
-            console.error("Konum hatası:", error);
+            console.error("Konum işleme hatası:", error);
             alert("Konum bilgisi alınamadı. Lütfen manuel olarak şehir seçin.");
+            autoLocationInfo.style.display = 'none';
           } finally {
             konumBtn.disabled = false;
-            konumBtn.textContent = "Konumumu Kullan";
+            konumBtn.textContent = "📍 Konumumu Kullan";
             setLoading(false);
           }
         },
         (error) => {
           console.error("Konum izin hatası:", error);
-          alert("Konum erişim izni verilmedi. Lütfen tarayıcı ayarlarından izin verin.");
+          let hataMesaji = "Konum alınamadı. ";
+          switch(error.code) {
+            case 1:
+              hataMesaji += "Konum izni verilmedi. Lütfen tarayıcı ayarlarından izin verin.";
+              break;
+            case 2:
+              hataMesaji += "Konum bilgisi alınamadı.";
+              break;
+            case 3:
+              hataMesaji += "Konum alımı zaman aşımına uğradı.";
+              break;
+            default:
+              hataMesaji += "Bilinmeyen bir hata oluştu.";
+          }
+          alert(hataMesaji);
           konumBtn.disabled = false;
-          konumBtn.textContent = "Konumumu Kullan";
+          konumBtn.textContent = "📍 Konumumu Kullan";
           setLoading(false);
         },
         {
@@ -723,45 +863,39 @@
       );
     }
 
-    // Bildirim aç/kapat - MOBİL UYUMLU
+    // Bildirim aç/kapat
     function toggleBildirim() {
       if (!bildirimAktif) {
-        // Bildirim açma
         if ("Notification" in window) {
-          // Mobil tarayıcılar için özel işlem
           if (typeof Notification.requestPermission === "function") {
             Notification.requestPermission().then(permission => {
               if (permission === "granted") {
                 bildirimAktif = true;
-                bildirimBtn.textContent = "Bildirimleri Kapat";
+                bildirimBtn.textContent = "🔕 Bildirimleri Kapat";
                 bildirimBtn.classList.add('bildirim-acik');
                 bildirimDurum.textContent = "🔔 Bildirimler: Açık";
                 bildirimDurum.classList.add('acik');
                 zamanlayicilariAyarla();
                 
-                // Mobil için test bildirimi göster
+                // Test bildirimi
                 if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                   new Notification("Namaz Vakitleri", {
                     body: "Bildirimler başarıyla açıldı!",
-                    icon: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Mosque_icon.png",
+                    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕌</text></svg>",
                     tag: "test"
                   });
                 }
               } else if (permission === "denied") {
-                alert("Bildirim izni tarayıcı ayarlarından engellenmiş. Lütfen tarayıcı ayarlarınızdan bildirim iznini açın.");
+                alert("Bildirim izni tarayıcı ayarlarından engellenmiş.");
               } else {
-                alert("Bildirim izni verilmedi. Lütfen izin vererek tekrar deneyin.");
+                alert("Bildirim izni verilmedi.");
               }
-            }).catch(error => {
-              console.error("Bildirim hatası:", error);
-              alert("Bildirim ayarlanırken bir hata oluştu: " + error.message);
             });
           }
         } else {
           alert("Bu tarayıcı bildirimleri desteklemiyor.");
         }
       } else {
-        // Bildirim kapatma
         bildirimAktif = false;
         bildirimBtn.textContent = "🔔 Bildirimleri Aç";
         bildirimBtn.classList.remove('bildirim-acik');
@@ -791,7 +925,9 @@
           throw new Error("API hatası");
         }
       } catch (error) {
-        alert("Vakitler alınamadı: " + error.message);
+        console.error("Vakit getirme hatası:", error);
+        alert("Vakitler alınamadı. Lütfen başka bir şehir seçin.");
+        konumBilgi.textContent = "Vakitler alınamadı. Lütfen şehir seçin.";
       } finally {
         vakitGetirBtn.disabled = false;
         vakitGetirBtn.textContent = "📅 Vakitleri Getir";
@@ -802,7 +938,6 @@
     // Tabloyu güncelle
     function tabloyuGuncelle() {
       const table = document.getElementById("vakitler");
-      // Mevcut satırları temizle (başlık hariç)
       while (table.rows.length > 1) {
         table.deleteRow(1);
       }
@@ -930,7 +1065,7 @@
         if (Notification.permission === "granted" && bildirimAktif) {
           new Notification("Namaz Vakti", {
             body: `${vakitAdi} vakti girdi.`,
-            icon: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Mosque_icon.png",
+            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕌</text></svg>",
             tag: vakitAdi
           });
         }
@@ -942,11 +1077,16 @@
       zamanlayicilar.push(timer);
     }
 
-    // Mobil için touch event iyileştirmeleri
+    // Mobil için touch event
     document.addEventListener('touchstart', function() {}, {passive: true});
   </script>
 </body>
 </html>
+
+ 
+
+
+
 
 
 
